@@ -23,32 +23,56 @@ editor.commands.addCommand({
   },
 });
 
-// TODO: poll every 100ms for job output/completion
+var currentInterval = null;
+const POLL_INTERVAL_MS = 250;
 
 function run() {
   var code = editor.getValue();
-  output.innerHTML = '';
+  document.getElementById('output').innerHTML = '';
   document.querySelector('button').disabled = true;
   fetch('/run', { method: 'POST', body: code })
-    .then((response) => {
-      if (!response.ok) throw Error(response.statusText);
-      return response.json();
-    })
+    .then(maybeJson)
     .then((data) => {
-      document.querySelector('button').disabled = false;
+      currentInterval = setTimeout(poll, POLL_INTERVAL_MS, data.pid);
+    }).catch(handleError);
+}
+
+function poll(pid) {
+  fetch(`/poll/${pid}`)
+    .then(maybeJson)
+    .then((data) => {
       const output = document.getElementById('output');
-      output.style.backgroundColor = (data.return_code != 0) ? 'lightpink' : 'antiquewhite';
-      output.innerText = data.stdout;
-      if (data.stderr.length > 0) {
+      const done = data.status != 'running';
+      if (data.status == 'error') {
+        output.style.backgroundColor = 'lightpink';
         var err = document.createElement('div');
         err.classList.add('stderr');
-        err.innerHTML = decode_ansi_colors(data.stderr);
+        err.innerHTML = decode_ansi_colors(data.message);
         output.appendChild(err);
+      } else {
+        output.style.backgroundColor = 'antiquewhite';
+        output.innerText = output.innerText + data.output;
       }
-    }).catch((err) => {
-      document.querySelector('button').disabled = false;
-      console.log(err);
-    });
+      if (done) {
+        document.querySelector('button').disabled = false;
+        currentInterval = null;
+      } else {
+        currentInterval = setTimeout(poll, POLL_INTERVAL_MS, pid);
+      }
+    }).catch(handleError);
+}
+
+function maybeJson(response) {
+  if (!response.ok) throw Error(response.statusText);
+  return response.json();
+}
+
+function handleError(err) {
+  document.querySelector('button').disabled = false;
+  console.log(err);
+  const output = document.getElementById('output');
+  output.style.backgroundColor = 'lightpink';
+  output.innerText = err.message;
 }
 
 // See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
