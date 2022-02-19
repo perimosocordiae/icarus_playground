@@ -1,0 +1,41 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 100vh;
+}
+body > div {
+  height: 100%;
+  overflow: auto;
+}
+
+.title {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-evenly;
+  align-items: center;
+  font-weight: bold;
+  font-size: 4vmin;
+  font-family: sans-serif;
+  margin: 0.5em 0;
+}
+
+#editor {
+  height: 100vh;
+}
+
+button {
+  font-size: 1em;
+}
+
+#output {
+  padding: 0.25em 0.25em 0.25em 1em;
+  background-color: antiquewhite;
+  font-family: monospace;
+  white-space: pre;
+  overflow: auto;
+}
+#output .bold { font-weight: bold; }
+#output .red { color: red; }
+#output .blue { color: blue; }

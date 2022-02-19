@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Icarus Playground</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.min.js"
+  integrity="sha512-hDyKEpCc9jPn3u2VffFjScCtNqZI+BAbThAhhDYqqqZbxMqmTSNIgdU0OU9BRD/8wFxHIWLAo561hh9fW7j6sA=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/theme-monokai.min.js"
+  integrity="sha512-wZYGbdk0giM73l8BLDNfSEziApAmH8DvXey6zNLG3QUgDeDsMAPm3FIdjhLwrGOWO0vdVHkVxeUzOBR0Hc/xBA=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+<div id="editor">{{demo_code}}</div>
+<div>
+  <div class="title">
+    <a href="/">Icarus Playground</a>
+    <button onclick="run()" title="Ctrl-Enter">&#9658;</button>
+    <select onchange="chooseExample(this)">{% for x in examples %}
+      <option value="{{x}}" {% if x==example %}selected{% endif %}>{{x}}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div id="output">Program output will appear here.</div>
+</div>
+<script src="{{ url_for('static', filename='index.js') }}"></script>
