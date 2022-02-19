@@ -22,7 +22,8 @@ def index(example=None):
         example = random.choice(list(examples.keys()))
     code = examples[example].open().read()
     return flask.render_template('index.html', demo_code=code,
-                                 example=example, examples=examples)
+                                 example=example, examples=examples,
+                                 version=app.icarus_version)
 
 
 @app.route('/run', methods=['POST'])
@@ -68,6 +69,8 @@ def main():
     binary_path = app.icarus_repo / 'bazel-bin/compiler/interpret'
     if not binary_path.exists():
         raise NotImplementedError('TODO: run bazel build')
+    app.icarus_version = subprocess.check_output(
+        ['git', '-C', str(app.icarus_repo), 'rev-parse', 'HEAD'], text=True)
     with tempfile.NamedTemporaryFile(mode='x') as f:
         f.close()
         shutil.copyfile(binary_path, f.name)
