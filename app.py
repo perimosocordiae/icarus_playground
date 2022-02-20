@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import dataclasses
 import flask
+import logging
 import os
 import pathlib
 import random
 import shutil
 import subprocess
 import tempfile
-import time
 from argparse import ArgumentParser
 from typing import Dict, List, TextIO, Tuple
 
@@ -23,17 +23,16 @@ class Job:
 
 
 class PlaygroundApp(flask.Flask):
-    icarus_repo: pathlib.Path
+    icarus_base: pathlib.Path
     icarus_version: str
-    binary_path: pathlib.Path
     running_jobs: Dict[int, Job] = {}
 
     def examples(self) -> Dict[str, pathlib.Path]:
-        return {p.name: p for p in self.icarus_repo.glob('examples/*.ic')}
+        return {p.name: p for p in self.icarus_base.glob('examples/*.ic')}
 
     def command(self, source: str) -> List[str]:
-        return ['stdbuf', '-oL', str(self.binary_path), '--module_paths',
-                str(self.icarus_repo / 'stdlib'), source]
+        return ['stdbuf', '-oL', str(self.icarus_base / 'icarus'),
+                '--module_paths', str(self.icarus_base / 'stdlib'), source]
 
 
 app = PlaygroundApp(__name__)
@@ -103,19 +102,28 @@ def parse_flags():
 
 def main():
     flags = parse_flags()
-    app.icarus_repo = pathlib.Path(flags.icarus_repo)
-    if not app.icarus_repo.exists():
+    # Only run the setup code when running the 'main' app.
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        app.run(host='0.0.0.0', port=flags.port, debug=True)
+        return
+    orig_icarus_repo = pathlib.Path(flags.icarus_repo)
+    if not orig_icarus_repo.exists():
         raise ValueError('Icarus git repo not found')
-    binary_path = app.icarus_repo / 'bazel-bin/compiler/interpret'
-    if not binary_path.exists():
+    orig_binary_path = orig_icarus_repo / 'bazel-bin/compiler/interpret'
+    if not orig_binary_path.exists():
         raise NotImplementedError('TODO: run bazel build')
     app.icarus_version = subprocess.check_output(
-        ['git', '-C', str(app.icarus_repo), 'rev-parse', 'HEAD'], text=True)
-    with tempfile.NamedTemporaryFile(mode='x') as f:
-        f.close()
-        shutil.copyfile(binary_path, f.name)
-        app.binary_path = pathlib.Path(f.name)
-        app.binary_path.chmod(0o755)
+        ['git', '-C', str(orig_icarus_repo), 'rev-parse', 'HEAD'], text=True)
+    app.logger.setLevel(logging.INFO)
+    with tempfile.TemporaryDirectory(prefix='icarus_') as dirname:
+        app.icarus_base = pathlib.Path(dirname)
+        app.icarus_base.chmod(0o755)
+        shutil.copyfile(orig_binary_path, app.icarus_base / 'icarus')
+        (app.icarus_base / 'icarus').chmod(0o755)
+        shutil.copytree(orig_icarus_repo / 'stdlib',
+                        app.icarus_base / 'stdlib')
+        shutil.copytree(orig_icarus_repo / 'examples',
+                        app.icarus_base / 'examples')
         app.run(host='0.0.0.0', port=flags.port, debug=True)
 
 
