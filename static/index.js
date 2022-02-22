@@ -37,6 +37,35 @@ function run() {
     }).catch(handleError);
 }
 
+function displayErrors(div, message) {
+  // TODO: Edit the DOM directly rather than using the html-parsing facility in innerHTML
+  div.innerHTML = message.map(e => {
+    const error = e.message.map(component => {
+      if (typeof(component) === "string") {
+        return `<p>${component}</p>`;
+      } else if (typeof(component) === "object") {
+        // Source quote.
+        // TODO: Highlight the corresponding line in the source on the right.
+        const lines = []
+        for (lineNumber in component) {
+          console.log(component[lineNumber]);
+          const lineContent = component[lineNumber];
+          lines.push(`<tr>
+            <td class="linenum">${lineNumber}</td>
+            <td><pre class="source">${lineContent}</pre></td>
+          </tr>`);
+        }
+        return '<table class="source">' + lines.join('') + '</table>';
+      } else {
+        console.warn("Ignoring component of type ", typeof(component));
+      }
+      return '';
+    }).join('');
+    return `
+      <div class="error_message"><strong class="error_header">Error:</strong> ${error}</div>`;
+  }).join('');
+}
+
 function poll(pid) {
   fetch(`/poll/${pid}`)
     .then(maybeJson)
@@ -44,10 +73,10 @@ function poll(pid) {
       const output = document.getElementById('output');
       const done = data.status != 'running';
       if (data.status == 'error') {
-        output.style.backgroundColor = 'lightpink';
         var err = document.createElement('div');
         err.classList.add('stderr');
-        err.innerHTML = decode_ansi_colors(data.message);
+        output.style.backgroundColor = 'white';
+        displayErrors(err, data.message)
         output.appendChild(err);
       } else {
         output.style.backgroundColor = 'antiquewhite';
@@ -74,16 +103,6 @@ function handleError(err) {
   output.style.backgroundColor = 'lightpink';
   output.innerText = err.message;
 }
-
-// See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-function decode_ansi_colors(str) {
-  return str.replace(/\x1B\[31;1m/g, '<span class="bold red">')
-    .replace(/\x1B\[97;1m/g, '<span class="bold">')
-    .replace(/\x1B\[0;1;31m/g, '</span><span class="bold red">')
-    .replace(/\x1B\[0;1;34m/g, '</span><span class="bold blue">')
-    .replace(/\x1B\[0;1;37m/g, '</span><span class="bold">')
-    .replace(/\x1B\[0m/g, '</span>');
-};
 
 function chooseExample(sel) {
   window.location.replace('/' + sel.value);
