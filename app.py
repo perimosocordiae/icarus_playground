@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import dataclasses
 import flask
+import json
 import logging
 import os
 import pathlib
@@ -32,7 +33,8 @@ class PlaygroundApp(flask.Flask):
 
     def command(self, source: str) -> List[str]:
         return ['stdbuf', '-oL', str(self.icarus_base / 'icarus'),
-                '--module_paths', str(self.icarus_base / 'stdlib'), source]
+                '--module_paths', str(self.icarus_base / 'stdlib'),
+                '--diagnostics=json', source]
 
 
 app = PlaygroundApp(__name__)
@@ -75,7 +77,10 @@ def poll(pid: int):
     del app.running_jobs[pid]
     if proc.returncode == 0:
         return flask.jsonify(status='success', output=output)
-    return flask.jsonify(status='error', message=output)
+    try:
+        return flask.jsonify(status = 'error', message = json.loads(output))
+    except JSONDecodeError:
+        return flask.jsonify(status='error', message='Unrecognizable error message.')
 
 
 def run_icarus_code(code: str) -> Job:
