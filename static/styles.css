@@ -37,9 +37,27 @@ button {
   overflow: auto;
   min-height: 25vh;
 }
-#output .bold { font-weight: bold; }
-#output .red { color: red; }
-#output .blue { color: blue; }
+#output .decoded .bold { font-weight: bold; }
+#output .decoded .red { color: red; }
+#output .decoded .blue { color: blue; }
+#output .error_header {
+  font-weight: bold;
+  font-size: large;
+  color: darkred;
+}
+#output .error_message {
+  padding-top: 1em;
+  white-space: pre-wrap;
+  max-width: 100ch;
+}
+#output .source_quote td {
+  padding: 0 1em;
+}
+#output .source_quote .line_num {
+  text-align: right;
+  font-weight: bold;
+  border-right: 1px solid black;
+}
 
 #footer {
   display: flex;
@@ -48,35 +66,4 @@ button {
   align-items: center;
   font-family: sans-serif;
   margin: 0.5em 0;
-}
-
-table.source {
-  background-color: #272822;
-  color: #F8F8F2;
-}
-
-.linenum {
-  font-family: monospace;
-  text-align: right;
-  font-weight: bold;
-  width: 4em;
-  padding: 0 1em;
-  border-right: 1px solid #F8F8F2;
-}
-
-pre.source {
-  font-family: monospace;
-  text-align: left;
-  padding: 0 1em;
-}
-
-
-.error_message {
-  padding: 1em;
-  background: #a0a0a0;
-}
-
-strong.error_header {
-  color: darkred;
-  padding: 0;
 }

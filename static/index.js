@@ -37,35 +37,6 @@ function run() {
     }).catch(handleError);
 }
 
-function displayErrors(div, message) {
-  // TODO: Edit the DOM directly rather than using the html-parsing facility in innerHTML
-  div.innerHTML = message.map(e => {
-    const error = e.message.map(component => {
-      if (typeof(component) === "string") {
-        return `<p>${component}</p>`;
-      } else if (typeof(component) === "object") {
-        // Source quote.
-        // TODO: Highlight the corresponding line in the source on the right.
-        const lines = []
-        for (lineNumber in component) {
-          console.log(component[lineNumber]);
-          const lineContent = component[lineNumber];
-          lines.push(`<tr>
-            <td class="linenum">${lineNumber}</td>
-            <td><pre class="source">${lineContent}</pre></td>
-          </tr>`);
-        }
-        return '<table class="source">' + lines.join('') + '</table>';
-      } else {
-        console.warn("Ignoring component of type ", typeof(component));
-      }
-      return '';
-    }).join('');
-    return `
-      <div class="error_message"><strong class="error_header">Error:</strong> ${error}</div>`;
-  }).join('');
-}
-
 function poll(pid) {
   fetch(`/poll/${pid}`)
     .then(maybeJson)
@@ -73,11 +44,7 @@ function poll(pid) {
       const output = document.getElementById('output');
       const done = data.status != 'running';
       if (data.status == 'error') {
-        var err = document.createElement('div');
-        err.classList.add('stderr');
-        output.style.backgroundColor = 'white';
-        displayErrors(err, data.message)
-        output.appendChild(err);
+        displayErrors(output, data.message)
       } else {
         output.style.backgroundColor = 'antiquewhite';
         output.innerText = output.innerText + data.output;
@@ -103,6 +70,66 @@ function handleError(err) {
   output.style.backgroundColor = 'lightpink';
   output.innerText = err.message;
 }
+
+function displayErrors(outputDiv, messages) {
+  const errorHeader = document.createElement('span');
+  errorHeader.classList.add('error_header');
+  errorHeader.innerText = 'Error';
+  outputDiv.appendChild(errorHeader);
+
+  if (typeof messages == 'string') {
+    outputDiv.appendChild(decodedError(messages));
+    return;
+  }
+
+  for (const msg of messages) {
+    const errorDiv = document.createElement('div');
+    errorDiv.classList.add('error_message', msg.category, msg.name);
+    for (const line of msg.message) {
+      if (typeof line == 'object') {
+        errorDiv.appendChild(sourceQuote(line));
+      } else {
+        errorDiv.appendChild(decodedError(line));
+      }
+    }
+    outputDiv.appendChild(errorDiv);
+  }
+}
+
+function decodedError(msg) {
+  const errorDiv = document.createElement('div');
+  errorDiv.classList.add('decoded');
+  errorDiv.innerHTML = replaceAnsiColors(msg);
+  return errorDiv;
+}
+
+function sourceQuote(lines) {
+  // TODO: Highlight the corresponding line in the source on the right.
+  const table = document.createElement('table');
+  table.classList.add('source_quote');
+  for (const [lineNumber, lineContent] of Object.entries(lines)) {
+    const row = document.createElement('tr');
+    const cell1 = document.createElement('td');
+    cell1.classList.add('line_num');
+    cell1.innerText = lineNumber;
+    row.appendChild(cell1);
+    const cell2 = document.createElement('td');
+    cell2.innerText = lineContent;
+    row.appendChild(cell2);
+    table.appendChild(row);
+  }
+  return table;
+}
+
+// See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+function replaceAnsiColors(str) {
+  return str.replace(/\x1B\[31;1m/g, '<span class="bold red">')
+    .replace(/\x1B\[97;1m/g, '<span class="bold">')
+    .replace(/\x1B\[0;1;31m/g, '</span><span class="bold red">')
+    .replace(/\x1B\[0;1;34m/g, '</span><span class="bold blue">')
+    .replace(/\x1B\[0;1;37m/g, '</span><span class="bold">')
+    .replace(/\x1B\[0m/g, '</span>');
+};
 
 function chooseExample(sel) {
   window.location.replace('/' + sel.value);

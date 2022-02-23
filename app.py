@@ -78,9 +78,11 @@ def poll(pid: int):
     if proc.returncode == 0:
         return flask.jsonify(status='success', output=output)
     try:
-        return flask.jsonify(status = 'error', message = json.loads(output))
-    except JSONDecodeError:
-        return flask.jsonify(status='error', message='Unrecognizable error message.')
+        err_message = json.loads(output)
+    except json.JSONDecodeError:
+        app.logger.error('Failure output is not JSON: %s', output)
+        err_message = output
+    return flask.jsonify(status='error', message=err_message)
 
 
 def run_icarus_code(code: str) -> Job:
