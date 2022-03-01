@@ -77,11 +77,11 @@ def poll(pid: int):
     del app.running_jobs[pid]
     if proc.returncode == 0:
         return flask.jsonify(status='success', output=output)
+    err_message = proc.stderr.read().decode('utf-8')
     try:
-        err_message = json.loads(output)
+        err_message = json.loads(err_message)
     except json.JSONDecodeError:
-        app.logger.error('Failure output is not JSON: %s', output)
-        err_message = output
+        app.logger.error('Failure output is not JSON: %s', err_message)
     return flask.jsonify(status='error', message=err_message)
 
 
@@ -94,7 +94,7 @@ def run_icarus_code(code: str) -> Job:
     app.logger.info('Command: %s', ' '.join(command))
     proc = subprocess.Popen(command,
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
+                            stderr=subprocess.PIPE)
     os.set_blocking(proc.stdout.fileno(), False)
     return Job(f, proc)
 
