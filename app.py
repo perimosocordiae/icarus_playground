@@ -69,19 +69,23 @@ def poll(pid: int):
         proc = app.running_jobs[pid].proc
     except KeyError:
         return flask.jsonify(status='error', message='No such process')
-    output = proc.stdout.read()
-    output = '' if not output else output.decode('utf-8')
+    stdout = proc.stdout.read()
+    stdout = '' if not stdout else stdout.decode('utf-8')
+    stderr = proc.stderr.read()
+    stderr = '' if not stderr else stderr.decode('utf-8')
     if proc.poll() is None:
-        return flask.jsonify(status='running', output=output)
+        return flask.jsonify(status='running', output=(stdout + stderr))
     app.logger.info('Process %d finished with code %s', pid, proc.returncode)
     del app.running_jobs[pid]
     if proc.returncode == 0:
-        return flask.jsonify(status='success', output=output)
-    err_message = proc.stderr.read().decode('utf-8')
+        if stderr.endswith('null'):
+            stderr = stderr[:-4]
+        return flask.jsonify(status='success', output=(stdout + stderr))
     try:
-        err_message = json.loads(err_message)
+        err_message = json.loads(stderr)
     except json.JSONDecodeError:
-        app.logger.error('Failure output is not JSON: %s', err_message)
+        app.logger.error('Failure output is not JSON: %s', stderr)
+        err_message = stderr
     return flask.jsonify(status='error', message=err_message)
 
 
