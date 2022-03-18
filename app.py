@@ -71,12 +71,12 @@ def poll(pid: int):
         return flask.jsonify(status='error', message='No such process')
     stdout = proc.stdout.read()
     stdout = '' if not stdout else stdout.decode('utf-8')
-    stderr = proc.stderr.read()
-    stderr = '' if not stderr else stderr.decode('utf-8')
     if proc.poll() is None:
-        return flask.jsonify(status='running', output=(stdout + stderr))
+        return flask.jsonify(status='running', output=stdout)
     app.logger.info('Process %d finished with code %s', pid, proc.returncode)
     del app.running_jobs[pid]
+    stderr = proc.stderr.read()
+    stderr = '' if not stderr else stderr.decode('utf-8')
     if proc.returncode == 0:
         if stderr.endswith('null'):
             stderr = stderr[:-4]
